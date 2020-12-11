@@ -17,7 +17,7 @@ export class CameraPWA {
 
   @Prop({ context: 'isServer' }) private isServer: boolean;
 
-  @Prop() facingMode: string = 'user';
+  @Prop() facingMode: string = 'environment';
 
   @Prop() handlePhoto: (photo: Blob) => void;
   @Prop() handleNoDeviceError: (e?: any) => void;
@@ -46,6 +46,8 @@ export class CameraPWA {
   imageCapture: any;
   // Video element when using ImageCapture native API
   videoElement: HTMLVideoElement;
+  // The list of connected devices with videoinput type
+  videoDevices: Array<MediaDeviceInfo>;
   // Canvas element for ImageCapture polyfill
   canvasElement: HTMLCanvasElement;
   // Whether the device has multiple cameras (front/back)
@@ -90,10 +92,10 @@ export class CameraPWA {
   async queryDevices() {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoDevices = devices.filter(d => d.kind == 'videoinput')
+      this.videoDevices = devices.filter(d => d.kind == 'videoinput')
 
-      this.hasCamera = !!videoDevices.length;
-      this.hasMultipleCameras = videoDevices.length > 1;
+      this.hasCamera = !!this.videoDevices.length;
+      this.hasMultipleCameras = this.videoDevices.length > 1;
     } catch(e) {
       this.deviceError = e;
     }
@@ -104,16 +106,49 @@ export class CameraPWA {
       constraints = this.defaultConstraints;
     }
 
+    navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: false,
+      ...constraints
+    })
+    .then(stream => this.initStream(stream))
+    .catch(e => {
+      switch (e.name) {
+        // Usually happens when camera is not available or manufacturer didn't implement the default one correctly
+        case 'NotReadableError': 
+          this.initSecondaryCamera(constraints)
+          break
+        default:
+          this.deviceError = e;
+          this.handleNoDeviceError && this.handleNoDeviceError(e);
+      }
+    })
+  }
+
+  async initSecondaryCamera(constraints?: MediaStreamConstraints) {
+    const devicesFacingTheCorrectSide = this.videoDevices
+      .filter(device => { 
+        if(this.facingMode === 'environment'){
+          return device.label.includes('facing back')
+        } else {
+          return device.label.includes('facing front')
+        }
+      })
+
     try {
+      const secondaryId = devicesFacingTheCorrectSide[devicesFacingTheCorrectSide.length -1].deviceId
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
         audio: false,
-        ...constraints
+        ...constraints,
+        video: {
+          deviceId: secondaryId
+        }
       });
 
       this.initStream(stream);
-    } catch(e) {
+    } catch (e) {
       this.deviceError = e;
+      console.log(`Error initing secondary camera ${e}`)
       this.handleNoDeviceError && this.handleNoDeviceError(e);
     }
   }
@@ -260,12 +295,14 @@ export class CameraPWA {
     }
 
     if (facingMode === 'environment') {
+      this.facingMode = 'user';
       this.initCamera({
         video: {
           facingMode: 'user'
         }
       });
     } else {
+      this.facingMode = 'environment';
       this.initCamera({
         video: {
           facingMode: 'environment'
