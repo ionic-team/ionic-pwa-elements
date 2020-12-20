@@ -255,6 +255,7 @@ export class CameraPWA {
     let facingMode = c.facingMode;
 
     if (!facingMode) {
+    if (!facingMode && facingMode !== undefined) {
       let c = track.getCapabilities();
       facingMode = c.facingMode[0];
     }
