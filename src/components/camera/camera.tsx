@@ -25,7 +25,6 @@ export class CameraPWA {
   @Prop() noDevicesButtonText = 'Choose image';
 
   @State() photo: any;
-  @State() photoSrc: any;
   @State() showShutterOverlay = false;
   @State() flashIndex = 0;
   @State() hasCamera: boolean | null = null;
@@ -34,6 +33,8 @@ export class CameraPWA {
 
   // The orientation of the current photo
   photoOrientation: number;
+
+  photoSrc: any;
 
   exifData: any;
 
@@ -172,11 +173,8 @@ export class CameraPWA {
   }
 
   async promptAccept(photo: any) {
-    this.photo = photo;
 
     const orientation = await this.getOrientation(photo);
-
-    console.log('Got orientation', orientation);
 
     this.photoOrientation = orientation;
 
@@ -202,6 +200,7 @@ export class CameraPWA {
     }
     
     this.photoSrc = URL.createObjectURL(photo);
+    this.photo = photo;
   }
 
   private getOrientation(file): Promise<number> {
@@ -275,7 +274,6 @@ export class CameraPWA {
   }
 
   setFlashMode(mode: FlashMode) {
-    console.log('New flash mode: ', mode);
     this.flashMode = mode;
   }
 
@@ -300,7 +298,6 @@ export class CameraPWA {
   }
 
   handleShutterClick = (_e: Event) => {
-    console.log()
     this.capture();
   }
 
@@ -342,7 +339,6 @@ export class CameraPWA {
 
     try {
       const orientation = await this.getOrientation(file);
-      console.log('Got orientation', orientation);
       this.photoOrientation = orientation;
     } catch (e) {
     }
@@ -351,7 +347,6 @@ export class CameraPWA {
   }
 
   handleVideoMetadata = (e: Event) => {
-    console.log('Video metadata', e);
   }
 
   iconExit() {
