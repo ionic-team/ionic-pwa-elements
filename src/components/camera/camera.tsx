@@ -433,7 +433,7 @@ export class CameraPWA {
           <div
             class="accept-image"
             style={{
-              backgroundImage: `url(${this.photoSrc})`,
+              backgroundImage: this.photoSrc ? `url(${this.photoSrc})` : 'none',
               ...acceptStyles
             }} />
         </div>
