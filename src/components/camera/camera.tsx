@@ -428,7 +428,7 @@ export class CameraPWA {
           </div>
         )}
         {/* Show the taken photo for the Accept UI*/}
-        {this.photo ? (
+        {this.photoSrc ? (
         <div class="accept">
           <div
             class="accept-image"
